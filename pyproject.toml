@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "csv-db"
+dynamic = ["version"]
+description = 'A simple database backed by a CSV file.'
+readme = "README.md"
+requires-python = ">=3.9"
+license = "BSD-3-Clause"
+keywords = []
+authors = [
+  { name = "Thomas Hawes", email = "105276609+thawes-rse@users.noreply.github.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = []
+
+[project.urls]
+Documentation = ""
+Issues = ""
+Source = ""
+
+[tool.hatch.version]
+path = "src/csv_db/__about__.py"
