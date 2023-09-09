@@ -52,13 +52,29 @@ class TestCsvDB(unittest.TestCase):
 
 
 class TestCsvFile(unittest.TestCase):
+    def setUp(self) -> None:
+        self._dir = tempfile.TemporaryDirectory()
+        self.tmp_dir = self._dir.name
+        self.path = os.path.join(self.tmp_dir, "file.csv")
+
+    def tearDown(self) -> None:
+        self._dir.cleanup()
+
     def test_initialise_file(self):
         """Test that a file is created upon initialisation."""
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            path = os.path.join(tmp_dir, "file.csv")
-            CsvFile(path).create()
-            self.assertTrue(os.path.exists(path))
+        _ = CsvFile(self.path)
+        self.assertTrue(os.path.exists(self.path))
+
+    def test_initialise_file_header(self):
+        """Test that the a csv file is created with a specified header
+        upon initialisation."""
+
+        header = ["a", "b"]
+        _ = CsvFile(self.path, header)
+        with open(self.path, mode="r", newline=None) as f:
+            expected = ",".join(header) + "\n"
+            self.assertEqual(expected, f.read())
 
 
 if __name__ == "__main__":

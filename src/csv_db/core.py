@@ -1,7 +1,8 @@
 import contextlib
+import csv
 from collections.abc import Collection
 from types import TracebackType
-from typing import Any
+from typing import Any, Optional
 
 
 class CsvDB(contextlib.AbstractContextManager):
@@ -34,9 +35,12 @@ class CsvDB(contextlib.AbstractContextManager):
 
 
 class CsvFile(object):
-    def __init__(self, path: str):
+    def __init__(self, path: str, header: Optional[Collection[str]] = None):
         self._path = path
+        self._header = header
+        self._create()
 
-    def create(self):
-        with open(self._path, mode="w"):
-            pass
+    def _create(self):
+        with open(self._path, mode="w", newline="") as csvfile:
+            if self._header is not None:
+                csv.writer(csvfile).writerow(self._header)
