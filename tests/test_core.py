@@ -6,6 +6,17 @@ import unittest
 from csv_db.core import CsvDB, CsvFile
 
 
+def exact(string: str):
+    """Turn a string into a regular expressions that defines an exact match on the
+    string.
+    """
+    escaped = string
+    for char in ["\\", "(", ")"]:
+        escaped = escaped.replace(char, "\\" + char)
+
+    return "^" + escaped + "$"
+
+
 class TestCsvDB(unittest.TestCase):
     def setUp(self) -> None:
         self.file_name = "db.csv"
@@ -61,29 +72,47 @@ class TestCsvFile(unittest.TestCase):
     def tearDown(self) -> None:
         self._dir.cleanup()
 
-    def test_initialise_file(self):
-        """Test that a file is created upon initialisation."""
+    def test_open_creates_file(self):
+        """Test that a file is created when the file is opened for writing."""
 
-        _ = CsvFile(self.path)
-        self.assertTrue(pathlib.Path(self.path).exists())
+        csvfile = CsvFile(self.path)
+        try:
+            csvfile.open(mode="w")
+            self.assertTrue(pathlib.Path(self.path).exists())
+        finally:
+            csvfile.close()
 
-    def test_initialise_file_header(self):
-        """Test that the a csv file is created with a specified header
-        upon initialisation."""
+    def test_open_creates_file_header(self):
+        """Test that a csv file is created with a specified header
+        when the file is opened for writing."""
 
         header = ["a", "b"]
-        _ = CsvFile(self.path, header)
+        csvfile = CsvFile(self.path, header)
+        try:
+            csvfile.open(mode="w")
+        finally:
+            csvfile.close()
+
         with open(self.path, mode="r", newline=None) as f:
             expected = ",".join(header) + "\n"
             self.assertEqual(expected, f.read())
 
     def test_initialise_file_exists_error(self):
         """Test that a FileExistsError is raised if a file already exists
-        at the given path."""
+        at the given path when initialising."""
 
         pathlib.Path(self.path).touch()
-        with self.assertRaisesRegexp(FileExistsError, "^Could not create csv file:"):
+        with self.assertRaisesRegexp(
+            FileExistsError,
+            exact(f"Could not create csv file at {self.path}: file already exists"),
+        ):
             CsvFile(self.path)
+
+    def test_context_manager(self):
+        """Test that CsvFile instance can be used as a context manager."""
+
+        with CsvFile(self.path):
+            pass
 
 
 if __name__ == "__main__":
