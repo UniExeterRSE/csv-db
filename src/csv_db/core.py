@@ -19,7 +19,7 @@ class CsvDB(contextlib.AbstractContextManager):
         return super().__exit__(__exc_type, __exc_value, __traceback)
 
     def create(self, record: dict[str, Any]):
-        self._records.append(record)
+        self._records.append({k: str(v) for k, v in record.items()})
 
     def retrieve(self, value: Any, field: str):
         return self._records[0]
