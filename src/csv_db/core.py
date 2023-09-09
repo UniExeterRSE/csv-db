@@ -41,6 +41,9 @@ class CsvFile(object):
         self._create()
 
     def _create(self):
-        with open(self._path, mode="w", newline="") as csvfile:
-            if self._header is not None:
-                csv.writer(csvfile).writerow(self._header)
+        try:
+            with open(self._path, mode="x", newline="") as csvfile:
+                if self._header is not None:
+                    csv.writer(csvfile).writerow(self._header)
+        except FileExistsError as e:
+            raise FileExistsError(f"Could not create csv file: {str(e)}")

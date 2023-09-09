@@ -1,4 +1,5 @@
 import os
+import pathlib
 import tempfile
 import unittest
 
@@ -64,7 +65,7 @@ class TestCsvFile(unittest.TestCase):
         """Test that a file is created upon initialisation."""
 
         _ = CsvFile(self.path)
-        self.assertTrue(os.path.exists(self.path))
+        self.assertTrue(pathlib.Path(self.path).exists())
 
     def test_initialise_file_header(self):
         """Test that the a csv file is created with a specified header
@@ -75,6 +76,14 @@ class TestCsvFile(unittest.TestCase):
         with open(self.path, mode="r", newline=None) as f:
             expected = ",".join(header) + "\n"
             self.assertEqual(expected, f.read())
+
+    def test_initialise_file_exists_error(self):
+        """Test that a FileExistsError is raised if a file already exists
+        at the given path."""
+
+        pathlib.Path(self.path).touch()
+        with self.assertRaisesRegexp(FileExistsError, "^Could not create csv file:"):
+            CsvFile(self.path)
 
 
 if __name__ == "__main__":
