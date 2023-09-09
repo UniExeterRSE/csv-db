@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "csv-db"
@@ -11,7 +11,7 @@ requires-python = ">=3.9"
 license = "BSD-3-Clause"
 keywords = []
 authors = [
-  { name = "Thomas Hawes", email = "105276609+thawes-rse@users.noreply.github.com" },
+  { name = "Thomas Hawes", email = "" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -28,6 +28,3 @@ dependencies = []
 Documentation = ""
 Issues = ""
 Source = ""
-
-[tool.hatch.version]
-path = "src/csv_db/__about__.py"
