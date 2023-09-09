@@ -1,6 +1,8 @@
+import os
+import tempfile
 import unittest
 
-from csv_db.core import CsvDB
+from csv_db.core import CsvDB, CsvFile
 
 
 class TestCsvDB(unittest.TestCase):
@@ -47,6 +49,16 @@ class TestCsvDB(unittest.TestCase):
                 ValueError, "^Argument 'record' missing the following fields: 'a', 'b'.$"
             ):
                 db.create(record)
+
+
+class TestCsvFile(unittest.TestCase):
+    def test_initialise_file(self):
+        """Test that a file is created upon initialisation."""
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = os.path.join(tmp_dir, "file.csv")
+            CsvFile(path).create()
+            self.assertTrue(os.path.exists(path))
 
 
 if __name__ == "__main__":

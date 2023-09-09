@@ -31,3 +31,12 @@ class CsvDB(contextlib.AbstractContextManager):
 
     def retrieve(self, value: Any, field: str):
         return self._records[0]
+
+
+class CsvFile(object):
+    def __init__(self, path: str):
+        self._path = path
+
+    def create(self):
+        with open(self._path, mode="w"):
+            pass
