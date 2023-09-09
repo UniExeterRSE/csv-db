@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "csv-db"
-dynamic = ["version"]
+version = "0.1.0.dev0"
 description = 'A simple database backed by a CSV file.'
 readme = "README.md"
 requires-python = ">=3.9"
-license = "BSD-3-Clause"
+license = {file = "LICENCE.txt"}
 keywords = []
 authors = [
-  { name = "Thomas Hawes", email = "" },
+  { name = "Thomas Hawes" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -23,8 +23,3 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = []
-
-[project.urls]
-Documentation = ""
-Issues = ""
-Source = ""
