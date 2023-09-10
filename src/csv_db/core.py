@@ -16,7 +16,7 @@ class CsvDB(object):
             return None
         with open(self._path, mode="r") as csvfile:
             fields = csvfile.readline().strip().split(",")
-        if not self._fields == fields:
+        if not set(self._fields) == set(fields):
             raise FieldsMismatchError(
                 f"'fields' does not agree with the fields defined in {self._path}"
             )

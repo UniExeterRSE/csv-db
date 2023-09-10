@@ -31,18 +31,39 @@ class TestCsvDB(unittest.TestCase):
 
     def test_initialise_existing_file(self):
         """Test that a database can be initialised on an existing csv file having
-        the correct headers."""
+        the correct fields."""
 
         with open(self.path, mode="x", newline="") as f:
             f.write(",".join(self.fields) + "\n")
 
         _ = CsvDB(self.path, self.fields)
 
+    def test_initialise_existing_file_fields_have_diff_order(self):
+        """Test that a database can be initialised on an existing csv file having
+        the correct fields but in a different order to those supplied."""
+
+        with open(self.path, mode="x", newline="") as f:
+            f.write(",".join(reversed(self.fields)) + "\n")
+
+        _ = CsvDB(self.path, self.fields)
+
+    @unittest.skip("Not yet implemented")
+    def test_initialise_existing_file_repeated_fields_error(self):
+        """Test that a RepeatedFieldsError is raised if a database is initialised
+        on an existing csv file which contains repeated fields."""
+        # TODO
+
+    @unittest.skip("Not yet implemented")
+    def test_initialise_repeated_fields_error(self):
+        """Test that a RepeatedFieldsError is raised if the fields supplied at
+        initialisation contain repeats."""
+        # TODO
+
     def test_initialise_existing_file_wrong_header_error(self):
         """Test that an FieldsMismatchError is raised if a database is initialised on
         an existing csv file that has a different header to the one specified."""
 
-        with open(self.path, mode="w", newline="") as f:
+        with open(self.path, mode="x", newline="") as f:
             f.write("a,b\n")
 
         with self.assertRaisesRegex(
@@ -135,6 +156,17 @@ class TestCsvDB(unittest.TestCase):
 
         self.assertEqual(self.record, db.retrieve(self.record[self.pkey], self.pkey))
         self.assertEqual(record2, db.retrieve(record2[self.pkey], self.pkey))
+
+    def test_create_add_records_to_existing_file_fields_have_diff_order(self):
+        """Test that a record can be added to a database in which the fields are in a
+        different order to those supplied at initialisation."""
+
+        with open(self.path, mode="x", newline="") as f:
+            f.write(",".join(self.fields) + "\n")
+
+        db = CsvDB(self.path, list(reversed(self.fields)))
+        db.create(self.record)
+        self.assertEqual(self.record, db.retrieve(self.record[self.pkey], self.pkey))
 
 
 if __name__ == "__main__":
