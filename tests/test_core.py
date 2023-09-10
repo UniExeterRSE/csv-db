@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from csv_db.core import CsvDB
+from csv_db.core import CsvDB, FieldsMismatchError
 
 
 def exact(string: str):
@@ -28,6 +28,28 @@ class TestCsvDB(unittest.TestCase):
 
     def tearDown(self) -> None:
         self._dir.cleanup()
+
+    def test_initialise_existing_file(self):
+        """Test that a database can be initialised on an existing csv file having
+        the correct headers."""
+
+        with open(self.path, mode="x", newline="") as f:
+            f.write(",".join(self.fields) + "\n")
+
+        _ = CsvDB(self.path, self.fields)
+
+    def test_initialise_existing_file_wrong_header_error(self):
+        """Test that an FieldsMismatchError is raised if a database is initialised on
+        an existing csv file that has a different header to the one specified."""
+
+        with open(self.path, mode="w", newline="") as f:
+            f.write("a,b\n")
+
+        with self.assertRaisesRegex(
+            FieldsMismatchError,
+            exact(f"'fields' does not agree with the fields defined in {self.path}"),
+        ):
+            _ = CsvDB(self.path, self.fields)
 
     def test_create_retrieve(self):
         """Test that a record can be retrieved based on the value of a column."""
