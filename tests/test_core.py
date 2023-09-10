@@ -76,6 +76,30 @@ class TestCsvDB(unittest.TestCase):
         ):
             db.create(record)
 
+    def test_create_multiple_records(self):
+        """Test that multiple records can be added to the database sequentially."""
+
+        record2 = {self.pkey: "2", "col1": "b"}
+        self.db.create(self.record)
+        self.db.create(record2)
+        for record in [self.record, record2]:
+            self.assertEqual(record, self.db.retrieve(record[self.pkey], self.pkey))
+
+    def test_create_multiple_records_csv_content(self):
+        """Test that the csv file has the expected content when multple records are
+        created sequentially."""
+
+        record2 = {self.pkey: "2", "col1": "b"}
+        self.db.create(self.record)
+        self.db.create(record2)
+        with open(self.path, mode="r", newline=None) as csvfile:
+            expected = (
+                [",".join(self.fields) + "\n"]
+                + [",".join([self.record[self.pkey], self.record["col1"]]) + "\n"]
+                + [",".join([record2[self.pkey], record2["col1"]]) + "\n"]
+            )
+            self.assertEqual(expected, csvfile.readlines())
+
 
 class TestCsvFile(unittest.TestCase):
     def setUp(self) -> None:
