@@ -8,7 +8,7 @@ from typing import Any, Literal, Optional
 
 class CsvDB(object):
     def __init__(self, path: str, fields: Collection[str]):
-        self._records = []
+        self._path = path
         self._fields = fields
 
     def create(self, record: dict[str, Any]):
@@ -18,10 +18,16 @@ class CsvDB(object):
                 f"Argument 'record' missing the following fields: {missing_fields}."
             )
 
-        self._records.append({k: str(v) for k, v in record.items()})
+        with open(self._path, mode="w", newline="") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=self._fields)
+            writer.writeheader()
+            writer.writerow(record)
 
     def retrieve(self, value: Any, field: str):
-        return self._records[0]
+        with open(self._path, mode="r", newline="") as csvfile:
+            for row in csv.DictReader(csvfile, self._fields):
+                if row[field] == str(value):
+                    return row
 
 
 class CsvFile(contextlib.AbstractContextManager):

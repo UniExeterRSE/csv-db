@@ -36,6 +36,15 @@ class TestCsvDB(unittest.TestCase):
         self.db.create(self.record)
         self.assertEqual(self.record, self.db.retrieve(self.record[self.pkey], self.pkey))
 
+    def test_create_makes_csv_with_header(self):
+        """Test that a header row is written in the csv file when a first record is
+        created."""
+
+        self.db.create(self.record)
+        with open(self.path, mode="r", newline=None) as csvfile:
+            expected = ",".join(self.fields) + "\n"
+            self.assertEqual(expected, csvfile.readline())
+
     def test_create_take_non_string_values(self):
         """Test that records can be created and retrieved based on non-string
         values."""
