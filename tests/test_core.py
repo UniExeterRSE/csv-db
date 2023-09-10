@@ -19,11 +19,16 @@ def exact(string: str):
 
 class TestCsvDB(unittest.TestCase):
     def setUp(self) -> None:
-        self.file_name = "db.csv"
+        self._dir = tempfile.TemporaryDirectory()
+        self.tmp_dir = self._dir.name
+        self.path = os.path.join(self.tmp_dir, "db.csv")
         self.fields = ["id", "col1"]
         self.pkey = "id"
-        self.db = CsvDB(self.file_name, self.fields)
+        self.db = CsvDB(self.path, self.fields)
         self.record = {self.pkey: "1", "col1": "a"}
+
+    def tearDown(self) -> None:
+        self._dir.cleanup()
 
     def test_create_retrieve(self):
         """Test that a record can be retrieved based on the value of a column."""
@@ -55,12 +60,12 @@ class TestCsvDB(unittest.TestCase):
         """Test that a ValueError is raised if the record submitted for creation has
         multiple fields missing."""
 
-        with CsvDB(self.file_name, ["a", "b"]) as db:
-            record = {self.pkey: "1"}
-            with self.assertRaisesRegex(
-                ValueError, "^Argument 'record' missing the following fields: 'a', 'b'.$"
-            ):
-                db.create(record)
+        db = CsvDB(self.path, ["a", "b"])
+        record = {self.pkey: "1"}
+        with self.assertRaisesRegex(
+            ValueError, "^Argument 'record' missing the following fields: 'a', 'b'.$"
+        ):
+            db.create(record)
 
 
 class TestCsvFile(unittest.TestCase):
@@ -113,6 +118,8 @@ class TestCsvFile(unittest.TestCase):
 
         with CsvFile(self.path):
             pass
+
+    # TODO: test open/close methods more thoroughly
 
 
 if __name__ == "__main__":
