@@ -1,9 +1,8 @@
 import os
-import pathlib
 import tempfile
 import unittest
 
-from csv_db.core import CsvDB, CsvFile
+from csv_db.core import CsvDB
 
 
 def exact(string: str):
@@ -99,60 +98,6 @@ class TestCsvDB(unittest.TestCase):
                 + [",".join([record2[self.pkey], record2["col1"]]) + "\n"]
             )
             self.assertEqual(expected, csvfile.readlines())
-
-
-class TestCsvFile(unittest.TestCase):
-    def setUp(self) -> None:
-        self._dir = tempfile.TemporaryDirectory()
-        self.tmp_dir = self._dir.name
-        self.path = os.path.join(self.tmp_dir, "file.csv")
-
-    def tearDown(self) -> None:
-        self._dir.cleanup()
-
-    def test_open_creates_file(self):
-        """Test that a file is created when the file is opened for writing."""
-
-        csvfile = CsvFile(self.path)
-        try:
-            csvfile.open(mode="w")
-            self.assertTrue(pathlib.Path(self.path).exists())
-        finally:
-            csvfile.close()
-
-    def test_open_creates_file_header(self):
-        """Test that a csv file is created with a specified header
-        when the file is opened for writing."""
-
-        header = ["a", "b"]
-        csvfile = CsvFile(self.path, header)
-        try:
-            csvfile.open(mode="w")
-        finally:
-            csvfile.close()
-
-        with open(self.path, mode="r", newline=None) as f:
-            expected = ",".join(header) + "\n"
-            self.assertEqual(expected, f.read())
-
-    def test_initialise_file_exists_error(self):
-        """Test that a FileExistsError is raised if a file already exists
-        at the given path when initialising."""
-
-        pathlib.Path(self.path).touch()
-        with self.assertRaisesRegexp(
-            FileExistsError,
-            exact(f"Could not create csv file at {self.path}: file already exists"),
-        ):
-            CsvFile(self.path)
-
-    def test_context_manager(self):
-        """Test that CsvFile instance can be used as a context manager."""
-
-        with CsvFile(self.path):
-            pass
-
-    # TODO: test open/close methods more thoroughly
 
 
 if __name__ == "__main__":
