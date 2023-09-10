@@ -121,6 +121,21 @@ class TestCsvDB(unittest.TestCase):
             )
             self.assertEqual(expected, csvfile.readlines())
 
+    def test_create_add_record_to_existing_file(self):
+        """Test that a record can be added to an existing database file when
+        initialised as a new database."""
+
+        # Create initial file
+        self.db.create(self.record)
+
+        # Create new database from same file and add record
+        db = CsvDB(self.path, self.fields)
+        record2 = {self.pkey: "2", "col1": "b"}
+        db.create(record2)
+
+        self.assertEqual(self.record, db.retrieve(self.record[self.pkey], self.pkey))
+        self.assertEqual(record2, db.retrieve(record2[self.pkey], self.pkey))
+
 
 if __name__ == "__main__":
     unittest.main()

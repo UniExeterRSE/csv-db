@@ -11,15 +11,15 @@ class CsvDB(object):
         self._csvfile = None
         self._verify_fields()
 
-    def _verify_fields(self):
+    def _verify_fields(self) -> None:
         if not self._path.exists():
             return None
         with open(self._path, mode="r") as csvfile:
             fields = csvfile.readline().strip().split(",")
-            if not self._fields == fields:
-                raise FieldsMismatchError(
-                    f"'fields' does not agree with the fields defined in {self._path}"
-                )
+        if not self._fields == fields:
+            raise FieldsMismatchError(
+                f"'fields' does not agree with the fields defined in {self._path}"
+            )
 
     def create(self, record: dict[str, Any]):
         missing_fields = ", ".join([f"'{k}'" for k in self._fields if k not in record])
