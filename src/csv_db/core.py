@@ -6,9 +6,20 @@ from typing import Any, Literal
 
 class CsvDB(object):
     def __init__(self, path: str, fields: Collection[str]):
-        self._path = path
+        self._path = pathlib.Path(path)
         self._fields = fields
         self._csvfile = None
+        self._verify_fields()
+
+    def _verify_fields(self) -> None:
+        if not self._path.exists():
+            return None
+        with open(self._path, mode="r") as csvfile:
+            fields = csvfile.readline().strip().split(",")
+        if not set(self._fields) == set(fields):
+            raise FieldsMismatchError(
+                f"'fields' does not agree with the fields defined in {self._path}"
+            )
 
     def create(self, record: dict[str, Any]):
         missing_fields = ", ".join([f"'{k}'" for k in self._fields if k not in record])
@@ -16,7 +27,7 @@ class CsvDB(object):
             raise ValueError(
                 f"Argument 'record' missing the following fields: {missing_fields}."
             )
-        mode = "a" if pathlib.Path(self._path).exists() else "x"
+        mode = "a" if self._path.exists() else "x"
         try:
             self._open(mode=mode)
             writer = csv.DictWriter(self._csvfile, fieldnames=self._fields)
@@ -38,3 +49,7 @@ class CsvDB(object):
             for row in csv.DictReader(csvfile, self._fields):
                 if row[field] == str(value):
                     return row
+
+
+class FieldsMismatchError(Exception):
+    pass
