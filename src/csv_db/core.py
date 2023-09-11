@@ -1,7 +1,7 @@
 import csv
 import pathlib
-from collections.abc import Collection
-from typing import Any
+from collections.abc import Callable, Collection, Iterator
+from typing import Any, Optional
 
 
 class CsvDB(object):
@@ -33,30 +33,54 @@ class CsvDB(object):
                 writer.writeheader()
             writer.writerow(record)
 
-    def retrieve(self, value: Any, field: str):
+    def retrieve(self, value: Any, field: str) -> Optional[dict[str, str]]:
+        if not self._path.exists():
+            return None
+
         with open(self._path, mode="r", newline="") as csvfile:
-            for row in csv.DictReader(csvfile, self._fields):
+            reader = self._make_data_reader(csvfile)
+            for row in reader:
                 try:
                     if row[field] == str(value):
                         return row
-                except KeyError:
+                except KeyError as exc:
                     raise DatabaseLookupError(
                         f"'{field}' does not define a field in the database."
-                    )
+                    ) from exc
+
+    def _make_data_reader(self, csvfile: Iterator[dict[str, str]]):
+        reader = csv.DictReader(csvfile, self._fields)
+        _ = next(reader)
+        return reader
+
+    def query(
+        self, predicate_fn: Optional[Callable[[dict[str, str]], bool]] = None
+    ) -> list[dict[str, str]]:
+        if not self._path.exists():
+            return []
+        with open(self._path, mode="r", newline="") as csvfile:
+            try:
+                return list(filter(predicate_fn, self._make_data_reader(csvfile)))
+            except KeyError as exc:
+                raise DatabaseLookupError(
+                    "Bad 'predicate_fn': attempted to look up a field not in the database."
+                ) from exc
+            except Exception as exc:
+                raise exc.__class__(f"Bad 'predicate_fn': {exc}") from exc
 
     def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
-        with open(self._path, mode="r", newline="") as csvfile:
-            records = list(csv.DictReader(csvfile, self._fields))
-
+        records = self.query()
         try:
             field_values = [rec[field] for rec in records]
             records[field_values.index(str(value))] = record
-        except KeyError:
+        except KeyError as exc:
             raise DatabaseLookupError(
                 f"'{field}' does not define a field in the database."
-            )
-        except ValueError:
-            raise DatabaseLookupError(f"Could not find record with {field} = {value}.")
+            ) from exc
+        except ValueError as exc:
+            raise DatabaseLookupError(
+                f"Could not find record with {field} = {value}."
+            ) from exc
 
         with open(self._path, mode="w", newline="") as csvfile:
             writer = csv.DictWriter(csvfile, self._fields)

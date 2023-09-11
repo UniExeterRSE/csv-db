@@ -44,6 +44,19 @@ class TestCsvDB(unittest.TestCase):
         self.db2.create(self.record)
         self.db2.create(self.record2)
 
+        # Database where order of fields differs from that of the underlying file
+        self.path3 = os.path.join(self.tmp_dir, "db3.csv")
+        write_csv_row(self.path3, self.fields)
+        self.dbrev = CsvDB(self.path3, list(reversed(self.fields)))
+
+        # Database with three records in it, where some repeat values for a column
+        self.path4 = os.path.join(self.tmp_dir, "db4.csv")
+        self.db4 = CsvDB(self.path4, self.fields)
+        self.record3 = {self.pkey: "3", self.col1: self.record[self.col1]}
+        self.db4.create(self.record)
+        self.db4.create(self.record2)
+        self.db4.create(self.record3)
+
     def tearDown(self) -> None:
         self._dir.cleanup()
 
@@ -174,10 +187,29 @@ class TestCsvDB(unittest.TestCase):
         """Test that a record can be added to a database in which the fields are in a
         different order to those supplied at initialisation."""
 
+        self.dbrev.create(self.record)
+        self.assertEqual(
+            self.record, self.dbrev.retrieve(self.record[self.pkey], self.pkey)
+        )
+
+    def test_retrieve_no_file_return_none(self):
+        """Test that ``None`` is returned if the csv file behind the database hasn't
+        been created yet."""
+
+        self.assertIsNone(self.db.retrieve("2", self.pkey))
+
+    def test_retrieve_no_records_in_db(self):
+        """Test that no record is returned when the database has no records in it."""
+
         write_csv_row(self.path, self.fields)
-        db = CsvDB(self.path, list(reversed(self.fields)))
-        db.create(self.record)
-        self.assertEqual(self.record, db.retrieve(self.record[self.pkey], self.pkey))
+        self.assertEqual(None, self.db.retrieve("1", self.pkey))
+
+    def test_retrieve_no_record_return_none(self):
+        """Test that ``None`` is returned if no record exists with the given field/value
+        combination. (Also tests that the header row isn't included in the search.)"""
+
+        self.db.create(self.record)
+        self.assertIsNone(self.db.retrieve(self.pkey, self.pkey))
 
     def test_retrieve_missing_field_error(self):
         """Test that a DatabaseLookupError is raised if the field provided does not match
@@ -211,6 +243,17 @@ class TestCsvDB(unittest.TestCase):
         self.db.update(1, self.pkey, new_record)
         self.assertEqual(new_record, self.db.retrieve(new_record[self.pkey], self.pkey))
 
+    def test_update_replaces_record_existing_file_fields_have_diff_order(self):
+        """Test that a record can be updated when the fields in the database file are in a
+        different order to those supplied at initialisation."""
+
+        self.dbrev.create(self.record)
+        new_record = {self.pkey: "1", self.col1: "b"}
+        self.dbrev.update(1, self.pkey, new_record)
+        self.assertEqual(
+            new_record, self.dbrev.retrieve(new_record[self.pkey], self.pkey)
+        )
+
     def test_update_missing_field_error(self):
         """Test that a DatabaseLookupError is raised if the field provided does not match
         a field in the database."""
@@ -232,6 +275,80 @@ class TestCsvDB(unittest.TestCase):
             exact(f"Could not find record with {self.pkey} = {val}."),
         ):
             self.db2.update(val, self.pkey, self.record)
+
+    def test_update_no_records_in_db_error(self):
+        """Test that a DatabaseLookupError is raised if there are no records in the
+        database. (Also tests that the header row is not included in the search when
+        updating.)"""
+
+        write_csv_row(self.path, self.fields)
+        val = self.pkey
+        with self.assertRaisesRegexp(
+            DatabaseLookupError,
+            exact(f"Could not find record with {self.pkey} = {val}."),
+        ):
+            self.db.update(val, self.pkey, self.record)
+
+    def test_query_no_file(self):
+        """Test that no records are returned by the query if the database csv file hasn't
+        been created yet."""
+
+        self.assertEqual([], self.db.query())
+
+    def test_query_no_records_in_db(self):
+        """Test that no records are returned when the database has no records in it."""
+
+        write_csv_row(self.path, self.fields)
+        self.assertEqual([], self.db.query())
+
+    def test_query_no_arg_return_all_records(self):
+        """Test that all records from the database are returned when no predicate
+        function is supplied."""
+
+        expected = [self.record, self.record2]
+        self.assertEqual(expected, self.db2.query())
+
+    def test_query_existing_file_fields_have_diff_order(self):
+        """Test that records are returned when the fields in the database file are in a
+        different order to those supplied at initialisation."""
+
+        self.dbrev.create(self.record)
+        self.assertEqual([self.record], self.dbrev.query())
+
+    def test_query_predicate_fn(self):
+        """Test that a supplied predicate function is applied as a filter when querying."""
+
+        expected = [self.record, self.record3]
+        self.assertEqual(
+            expected, self.db4.query(lambda x: x[self.col1] == self.record[self.col1])
+        )
+
+    def test_query_predicate_fn_no_records(self):
+        """Test that a supplied predicate function that evaluates to ``False`` on every
+        record results in a query with no records."""
+
+        self.assertEqual([], self.db4.query(lambda x: False))
+
+    def test_query_invalid_predicate_fn_field_lookup_error(self):
+        """Test that a DatabaseLookupError is raised if the predicate function examines a
+        a field that is not in the database."""
+
+        missing_field = "col2"
+        with self.assertRaisesRegexp(
+            DatabaseLookupError,
+            exact(
+                "Bad 'predicate_fn': attempted to look up a field not in the database."
+            ),
+        ):
+            self.db4.query(lambda x: x[missing_field] == "a")
+
+    def test_query_other_bad_predicate_fn(self):
+        """Test that, when a non-KeyError exception arises from evaluating the predicate
+        function, a descriptive error message indicating as such is given."""
+
+        not_callable = 3
+        with self.assertRaisesRegexp(Exception, "^Bad 'predicate_fn': "):
+            self.db4.query(not_callable)
 
 
 if __name__ == "__main__":
