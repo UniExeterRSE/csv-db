@@ -1,7 +1,7 @@
 import csv
 import pathlib
 from collections.abc import Collection
-from typing import Any
+from typing import Any, Optional
 
 
 class CsvDB(object):
@@ -33,7 +33,10 @@ class CsvDB(object):
                 writer.writeheader()
             writer.writerow(record)
 
-    def retrieve(self, value: Any, field: str):
+    def retrieve(self, value: Any, field: str) -> Optional[dict[str, str]]:
+        if not self._path.exists():
+            return None
+
         with open(self._path, mode="r", newline="") as csvfile:
             for row in csv.DictReader(csvfile, self._fields):
                 try:

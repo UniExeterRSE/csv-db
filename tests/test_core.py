@@ -179,6 +179,19 @@ class TestCsvDB(unittest.TestCase):
         db.create(self.record)
         self.assertEqual(self.record, db.retrieve(self.record[self.pkey], self.pkey))
 
+    def test_retrieve_no_file_return_none(self):
+        """Test that ``None`` is returned if the csv file behind the database hasn't
+        been created yet."""
+
+        self.assertIsNone(self.db.retrieve("2", self.pkey))
+
+    def test_retrieve_no_record_return_none(self):
+        """Test that ``None`` is returned if no record exists with the given field/value
+        combination."""
+
+        self.db.create(self.record)
+        self.assertIsNone(self.db.retrieve("2", self.pkey))
+
     def test_retrieve_missing_field_error(self):
         """Test that a DatabaseLookupError is raised if the field provided does not match
         a field in the database."""
