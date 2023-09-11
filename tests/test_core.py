@@ -3,7 +3,12 @@ import tempfile
 import unittest
 from typing import Iterable
 
-from csv_db.core import CsvDB, DatabaseLookupError, FieldsMismatchError
+from csv_db.core import (
+    CsvDB,
+    DatabaseLookupError,
+    FieldsMismatchError,
+    RepeatedFieldsError,
+)
 
 
 def exact(string: str):
@@ -74,17 +79,27 @@ class TestCsvDB(unittest.TestCase):
         write_csv_row(self.path, reversed(self.fields))
         _ = CsvDB(self.path, self.fields)
 
-    @unittest.skip("Not yet implemented")
     def test_initialise_existing_file_repeated_fields_error(self):
         """Test that a RepeatedFieldsError is raised if a database is initialised
         on an existing csv file which contains repeated fields."""
-        # TODO
 
-    @unittest.skip("Not yet implemented")
+        fields = ["a", "b", "c"]
+        write_csv_row(self.path, ["a", "a", "b", "b", "c"])
+        with self.assertRaisesRegexp(
+            RepeatedFieldsError,
+            exact(f"Database file {self.path} contains repeated fields: 'a', 'b'."),
+        ):
+            _ = CsvDB(self.path, fields)
+
     def test_initialise_repeated_fields_error(self):
         """Test that a RepeatedFieldsError is raised if the fields supplied at
         initialisation contain repeats."""
-        # TODO
+
+        with self.assertRaisesRegexp(
+            RepeatedFieldsError,
+            exact("Argument 'fields' contains repeated fields: 'a', 'b'."),
+        ):
+            _ = CsvDB(self.path, ["a", "a", "b", "b", "c"])
 
     def test_initialise_existing_file_wrong_header_error(self):
         """Test that an FieldsMismatchError is raised if a database is initialised on

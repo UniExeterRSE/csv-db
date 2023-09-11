@@ -11,14 +11,32 @@ class CsvDB(object):
         self._verify_fields()
 
     def _verify_fields(self) -> None:
+        self._check_repeated_fields(
+            self._fields, "Argument 'fields' contains repeated fields"
+        )
+
         if not self._path.exists():
             return None
+
         with open(self._path, mode="r") as csvfile:
             fields = csvfile.readline().strip().split(",")
+
+        self._check_repeated_fields(
+            fields, f"Database file {self._path} contains repeated fields"
+        )
+
         if not set(self._fields) == set(fields):
             raise FieldsMismatchError(
                 f"'fields' does not agree with the fields defined in {self._path}"
             )
+
+    @staticmethod
+    def _check_repeated_fields(fields: Collection[str], exc_msg_start: str) -> None:
+        repeated_fields = ", ".join(
+            sorted({f"'{f}'" for f in fields if fields.count(f) > 1})
+        )
+        if repeated_fields:
+            raise RepeatedFieldsError(f"{exc_msg_start}: {repeated_fields}.")
 
     def create(self, record: dict[str, Any]):
         missing_fields = ", ".join([f"'{k}'" for k in self._fields if k not in record])
@@ -89,6 +107,10 @@ class CsvDB(object):
 
 
 class FieldsMismatchError(Exception):
+    pass
+
+
+class RepeatedFieldsError(Exception):
     pass
 
 
