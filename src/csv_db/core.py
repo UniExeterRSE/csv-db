@@ -45,10 +45,10 @@ class CsvDB(object):
                 try:
                     if row[field] == str(value):
                         return row
-                except KeyError:
+                except KeyError as exc:
                     raise DatabaseLookupError(
                         f"'{field}' does not define a field in the database."
-                    )
+                    ) from exc
 
     def _make_data_reader(self, csvfile: Iterator[dict[str, str]]):
         reader = csv.DictReader(csvfile, self._fields)
@@ -66,12 +66,14 @@ class CsvDB(object):
         try:
             field_values = [rec[field] for rec in records]
             records[field_values.index(str(value))] = record
-        except KeyError:
+        except KeyError as exc:
             raise DatabaseLookupError(
                 f"'{field}' does not define a field in the database."
-            )
-        except ValueError:
-            raise DatabaseLookupError(f"Could not find record with {field} = {value}.")
+            ) from exc
+        except ValueError as exc:
+            raise DatabaseLookupError(
+                f"Could not find record with {field} = {value}."
+            ) from exc
 
         with open(self._path, mode="w", newline="") as csvfile:
             writer = csv.DictWriter(csvfile, self._fields)
