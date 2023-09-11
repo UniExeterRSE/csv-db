@@ -1,6 +1,6 @@
 import csv
 import pathlib
-from collections.abc import Collection
+from collections.abc import Collection, Iterator
 from typing import Any, Optional
 
 
@@ -38,7 +38,10 @@ class CsvDB(object):
             return None
 
         with open(self._path, mode="r", newline="") as csvfile:
-            for row in csv.DictReader(csvfile, self._fields):
+            reader = self._make_data_reader(csvfile)
+            for row in reader:
+                if set(row.values()) == set(self._fields):
+                    continue
                 try:
                     if row[field] == str(value):
                         return row
@@ -47,11 +50,16 @@ class CsvDB(object):
                         f"'{field}' does not define a field in the database."
                     )
 
+    def _make_data_reader(self, csvfile: Iterator[dict[str, str]]):
+        reader = csv.DictReader(csvfile, self._fields)
+        _ = next(reader)
+        return reader
+
     def query(self) -> list[dict[str, str]]:
         if not self._path.exists():
             return []
         with open(self._path, mode="r", newline="") as csvfile:
-            return list(csv.DictReader(csvfile))
+            return list(self._make_data_reader(csvfile))
 
     def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
         records = self.query()
