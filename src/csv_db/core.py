@@ -1,6 +1,6 @@
 import csv
 import pathlib
-from collections.abc import Collection, Iterator
+from collections.abc import Callable, Collection, Iterator
 from typing import Any, Optional
 
 
@@ -55,11 +55,20 @@ class CsvDB(object):
         _ = next(reader)
         return reader
 
-    def query(self) -> list[dict[str, str]]:
+    def query(
+        self, predicate_fn: Optional[Callable[[dict[str, str]], bool]] = None
+    ) -> list[dict[str, str]]:
         if not self._path.exists():
             return []
         with open(self._path, mode="r", newline="") as csvfile:
-            return list(self._make_data_reader(csvfile))
+            try:
+                return list(filter(predicate_fn, self._make_data_reader(csvfile)))
+            except KeyError as exc:
+                raise DatabaseLookupError(
+                    "Bad 'predicate_fn': attempted to look up a field not in the database."
+                ) from exc
+            except Exception as exc:
+                raise exc.__class__(f"Bad 'predicate_fn': {exc}") from exc
 
     def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
         records = self.query()

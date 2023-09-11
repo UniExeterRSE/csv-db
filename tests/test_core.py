@@ -49,6 +49,14 @@ class TestCsvDB(unittest.TestCase):
         write_csv_row(self.path3, self.fields)
         self.dbrev = CsvDB(self.path3, list(reversed(self.fields)))
 
+        # Database with three records in it, where some repeat values for a column
+        self.path4 = os.path.join(self.tmp_dir, "db4.csv")
+        self.db4 = CsvDB(self.path4, self.fields)
+        self.record3 = {self.pkey: "3", self.col1: self.record[self.col1]}
+        self.db4.create(self.record)
+        self.db4.create(self.record2)
+        self.db4.create(self.record3)
+
     def tearDown(self) -> None:
         self._dir.cleanup()
 
@@ -306,6 +314,41 @@ class TestCsvDB(unittest.TestCase):
 
         self.dbrev.create(self.record)
         self.assertEqual([self.record], self.dbrev.query())
+
+    def test_query_predicate_fn(self):
+        """Test that a supplied predicate function is applied as a filter when querying."""
+
+        expected = [self.record, self.record3]
+        self.assertEqual(
+            expected, self.db4.query(lambda x: x[self.col1] == self.record[self.col1])
+        )
+
+    def test_query_predicate_fn_no_records(self):
+        """Test that a supplied predicate function that evaluates to ``False`` on every
+        record results in a query with no records."""
+
+        self.assertEqual([], self.db4.query(lambda x: False))
+
+    def test_query_invalid_predicate_fn_field_lookup_error(self):
+        """Test that a DatabaseLookupError is raised if the predicate function examines a
+        a field that is not in the database."""
+
+        missing_field = "col2"
+        with self.assertRaisesRegexp(
+            DatabaseLookupError,
+            exact(
+                "Bad 'predicate_fn': attempted to look up a field not in the database."
+            ),
+        ):
+            self.db4.query(lambda x: x[missing_field] == "a")
+
+    def test_query_other_bad_predicate_fn(self):
+        """Test that, when a non-KeyError exception arises from evaluating the predicate
+        function, a descriptive error message indicating as such is given."""
+
+        not_callable = 3
+        with self.assertRaisesRegexp(Exception, "^Bad 'predicate_fn': "):
+            self.db4.query(not_callable)
 
 
 if __name__ == "__main__":
