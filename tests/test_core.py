@@ -246,6 +246,25 @@ class TestCsvDB(unittest.TestCase):
         ):
             self.db2.update(val, self.pkey, self.record)
 
+    def test_query_no_file(self):
+        """Test that no records are returned by the query if the database csv file hasn't
+        been created yet."""
+
+        self.assertEqual([], self.db.query())
+
+    def test_query_no_records_in_db(self):
+        """Test that no records are returned when the database has no records in it."""
+
+        write_csv_row(self.path, self.fields)
+        self.assertEqual([], self.db.query())
+
+    def test_query_no_arg_return_all_records(self):
+        """Test that all records from the database are returned when no predicate
+        function is supplied."""
+
+        expected = [self.record, self.record2]
+        self.assertEqual(expected, self.db2.query())
+
 
 if __name__ == "__main__":
     unittest.main()

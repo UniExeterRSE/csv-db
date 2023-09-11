@@ -47,10 +47,14 @@ class CsvDB(object):
                         f"'{field}' does not define a field in the database."
                     )
 
-    def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
+    def query(self) -> list[dict[str, str]]:
+        if not self._path.exists():
+            return []
         with open(self._path, mode="r", newline="") as csvfile:
-            records = list(csv.DictReader(csvfile, self._fields))
+            return list(csv.DictReader(csvfile))
 
+    def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
+        records = self.query()
         try:
             field_values = [rec[field] for rec in records]
             records[field_values.index(str(value))] = record
