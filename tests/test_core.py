@@ -185,6 +185,12 @@ class TestCsvDB(unittest.TestCase):
 
         self.assertIsNone(self.db.retrieve("2", self.pkey))
 
+    def test_retrieve_no_records_in_db(self):
+        """Test that no record is returned when the database has no records in it."""
+
+        write_csv_row(self.path, self.fields)
+        self.assertEqual(None, self.db.retrieve("1", self.pkey))
+
     def test_retrieve_no_record_return_none(self):
         """Test that ``None`` is returned if no record exists with the given field/value
         combination."""
@@ -245,6 +251,18 @@ class TestCsvDB(unittest.TestCase):
             exact(f"Could not find record with {self.pkey} = {val}."),
         ):
             self.db2.update(val, self.pkey, self.record)
+
+    def test_update_no_records_in_db_error(self):
+        """Test that a DatabaseLookupError is raised if there are no records in the
+        database."""
+
+        write_csv_row(self.path, self.fields)
+        val = "1"
+        with self.assertRaisesRegexp(
+            DatabaseLookupError,
+            exact(f"Could not find record with {self.pkey} = {val}."),
+        ):
+            self.db.update(val, self.pkey, self.record)
 
     def test_query_no_file(self):
         """Test that no records are returned by the query if the database csv file hasn't
