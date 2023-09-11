@@ -40,8 +40,6 @@ class CsvDB(object):
         with open(self._path, mode="r", newline="") as csvfile:
             reader = self._make_data_reader(csvfile)
             for row in reader:
-                if set(row.values()) == set(self._fields):
-                    continue
                 try:
                     if row[field] == str(value):
                         return row
