@@ -50,6 +50,25 @@ class CsvDB(object):
                 if row[field] == str(value):
                     return row
 
+    def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
+        with open(self._path, mode="r", newline="") as csvfile:
+            records = list(csv.DictReader(csvfile, self._fields))
+
+        field_values = [rec[field] for rec in records]
+        try:
+            records[field_values.index(str(value))] = record
+        except ValueError:
+            raise DatabaseLookupError(f"Could not find record with {field} = {value}.")
+
+        with open(self._path, mode="w", newline="") as csvfile:
+            writer = csv.DictWriter(csvfile, self._fields)
+            writer.writeheader()
+            writer.writerows(records)
+
 
 class FieldsMismatchError(Exception):
+    pass
+
+
+class DatabaseLookupError(Exception):
     pass

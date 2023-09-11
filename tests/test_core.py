@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from csv_db.core import CsvDB, FieldsMismatchError
+from csv_db.core import CsvDB, DatabaseLookupError, FieldsMismatchError
 
 
 def exact(string: str):
@@ -25,6 +25,13 @@ class TestCsvDB(unittest.TestCase):
         self.pkey = "id"
         self.db = CsvDB(self.path, self.fields)
         self.record = {self.pkey: "1", "col1": "a"}
+
+        # Database with two records in it
+        self.path2 = os.path.join(self.tmp_dir, "db2.csv")
+        self.db2 = CsvDB(self.path2, self.fields)
+        self.record2 = {self.pkey: "2", "col1": "b"}
+        self.db2.create(self.record)
+        self.db2.create(self.record2)
 
     def tearDown(self) -> None:
         self._dir.cleanup()
@@ -167,6 +174,38 @@ class TestCsvDB(unittest.TestCase):
         db = CsvDB(self.path, list(reversed(self.fields)))
         db.create(self.record)
         self.assertEqual(self.record, db.retrieve(self.record[self.pkey], self.pkey))
+
+    def test_update_replaces_correct_record(self):
+        """Test that the record with the specified field value gets updated and no other
+        records get updated."""
+
+        lookup_val = self.record2[self.pkey]
+        updated_record = {self.pkey: lookup_val, "col1": "c"}
+        self.db2.update(lookup_val, self.pkey, updated_record)
+        self.assertEqual(updated_record, self.db2.retrieve(lookup_val, self.pkey))
+        self.assertEqual(
+            self.record, self.db2.retrieve(self.record[self.pkey], self.pkey)
+        )
+
+    def test_update_replaces_record_convert_value_to_str(self):
+        """Test that the record with the specified field value gets updated after
+        converting the value to a string."""
+
+        self.db.create({self.pkey: "1", "col1": "a"})
+        new_record = {self.pkey: "1", "col1": "b"}
+        self.db.update(1, self.pkey, new_record)
+        self.assertEqual(new_record, self.db.retrieve(new_record[self.pkey], self.pkey))
+
+    def test_update_cannot_find_record_error(self):
+        """Test that a DatabaseLookupError is raised if the key/value combination supplied to
+        update cannot be found in the database."""
+
+        val = "-1"
+        with self.assertRaisesRegexp(
+            DatabaseLookupError,
+            exact(f"Could not find record with {self.pkey} = {val}."),
+        ):
+            self.db2.update(val, self.pkey, self.record)
 
 
 if __name__ == "__main__":
