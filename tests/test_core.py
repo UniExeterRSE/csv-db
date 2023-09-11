@@ -179,6 +179,17 @@ class TestCsvDB(unittest.TestCase):
         db.create(self.record)
         self.assertEqual(self.record, db.retrieve(self.record[self.pkey], self.pkey))
 
+    def test_retrieve_missing_field_error(self):
+        """Test that a DatabaseLookupError is raised if the field provided does not match
+        a field in the database."""
+
+        field = "not-present"
+        with self.assertRaisesRegexp(
+            DatabaseLookupError,
+            exact(f"'{field}' does not define a field in the database."),
+        ):
+            self.db2.retrieve("1", field)
+
     def test_update_replaces_correct_record(self):
         """Test that the record with the specified field value gets updated and no other
         records get updated."""
@@ -199,6 +210,17 @@ class TestCsvDB(unittest.TestCase):
         new_record = {self.pkey: "1", self.col1: "b"}
         self.db.update(1, self.pkey, new_record)
         self.assertEqual(new_record, self.db.retrieve(new_record[self.pkey], self.pkey))
+
+    def test_update_missing_field_error(self):
+        """Test that a DatabaseLookupError is raised if the field provided does not match
+        a field in the database."""
+
+        field = "not-present"
+        with self.assertRaisesRegexp(
+            DatabaseLookupError,
+            exact(f"'{field}' does not define a field in the database."),
+        ):
+            self.db2.update("1", field, self.record)
 
     def test_update_cannot_find_record_error(self):
         """Test that a DatabaseLookupError is raised if the key/value combination supplied to

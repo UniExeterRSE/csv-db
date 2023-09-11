@@ -47,16 +47,25 @@ class CsvDB(object):
     def retrieve(self, value: Any, field: str):
         with open(self._path, mode="r", newline="") as csvfile:
             for row in csv.DictReader(csvfile, self._fields):
-                if row[field] == str(value):
-                    return row
+                try:
+                    if row[field] == str(value):
+                        return row
+                except KeyError:
+                    raise DatabaseLookupError(
+                        f"'{field}' does not define a field in the database."
+                    )
 
     def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
         with open(self._path, mode="r", newline="") as csvfile:
             records = list(csv.DictReader(csvfile, self._fields))
 
-        field_values = [rec[field] for rec in records]
         try:
+            field_values = [rec[field] for rec in records]
             records[field_values.index(str(value))] = record
+        except KeyError:
+            raise DatabaseLookupError(
+                f"'{field}' does not define a field in the database."
+            )
         except ValueError:
             raise DatabaseLookupError(f"Could not find record with {field} = {value}.")
 
