@@ -7,6 +7,7 @@ from csv_db.core import (
     CsvDB,
     DatabaseLookupError,
     FieldsMismatchError,
+    MissingFieldsError,
     RepeatedFieldsError,
 )
 
@@ -79,6 +80,35 @@ class TestCsvDB(unittest.TestCase):
         write_csv_row(self.path, reversed(self.fields))
         _ = CsvDB(self.path, self.fields)
 
+    def test_initialise_empty_fields_error(self):
+        """Test that a ValueError is raised if an empty collection of fields is provided."""
+
+        with self.assertRaisesRegexp(
+            ValueError, exact("Argument 'fields' defines an empty collection.")
+        ):
+            _ = CsvDB(self.path, [])
+
+    def test_initialise_empty_field_names_error(self):
+        """Test that a ValueError is raised if a collection of fields is provided that
+        contains empty field names."""
+
+        with self.assertRaisesRegexp(
+            ValueError,
+            exact("Argument 'fields' contains empty field names."),
+        ):
+            _ = CsvDB(self.path, ["a", ""])
+
+    def test_initialise_existing_file_empty_field_names_error(self):
+        """Test that a MissingFieldsError is raised if a database is initialised on an
+        existing csv file that contains empty field names."""
+
+        write_csv_row(self.path, ["a", ""])
+        with self.assertRaisesRegexp(
+            MissingFieldsError,
+            exact(f"Database file {self.path} contains empty field names."),
+        ):
+            _ = CsvDB(self.path, self.fields)
+
     def test_initialise_existing_file_repeated_fields_error(self):
         """Test that a RepeatedFieldsError is raised if a database is initialised
         on an existing csv file which contains repeated fields."""
@@ -108,7 +138,7 @@ class TestCsvDB(unittest.TestCase):
         write_csv_row(self.path, ["a", "b"])
         with self.assertRaisesRegex(
             FieldsMismatchError,
-            exact(f"'fields' does not agree with the fields defined in {self.path}"),
+            exact(f"'fields' does not agree with the fields defined in {self.path}."),
         ):
             _ = CsvDB(self.path, self.fields)
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import pathlib
 from collections.abc import Callable, Collection, Iterator
-from typing import Any, Iterable, Optional, TypeAlias
+from typing import Any, Optional, TypeAlias
 
 Record: TypeAlias = dict[str, str]
 
@@ -11,33 +11,52 @@ Record: TypeAlias = dict[str, str]
 class CsvDB(object):
     def __init__(self, path: str, fields: Collection[str]):
         self._path = pathlib.Path(path)
-        self._fields = self._make_fields(fields)
+        self._fields = fields
+        self._fields_arg = "fields"
+        self._validate_db_initialisation()
 
-    def _make_fields(self, fields: Collection[str]) -> _Fields:
-        try:
-            _fields = _Fields(fields)
-        except RepeatedFieldsError as exc:
-            msg = (
-                f"Argument 'fields' contains repeated fields: {exc.repeated_fields_str}."
+    def _validate_db_initialisation(self) -> None:
+        if len(self._fields) == 0:
+            raise ValueError(
+                f"Argument '{self._fields_arg}' defines an empty collection."
             )
-            raise exc.__class__(msg, repeated_fields=exc.repeated_fields)
+
+        if self._has_missing_field_names(self._fields):
+            raise ValueError(f"Argument '{self._fields_arg}' contains empty field names.")
+
+        if repeated_fields := self._make_repeated_fields_str(self._fields):
+            raise RepeatedFieldsError(
+                f"Argument '{self._fields_arg}' contains repeated fields: {repeated_fields}."
+            )
 
         if not self._path.exists():
-            return _fields
+            return
 
-        try:
-            with open(self._path, mode="r") as csvfile:
-                file_fields = _Fields(csvfile.readline().strip().split(","))
-        except RepeatedFieldsError as exc:
-            msg = f"Database file {self._path} contains repeated fields: {exc.repeated_fields_str}."
-            raise exc.__class__(msg, repeated_fields=exc.repeated_fields)
+        with open(self._path, mode="r") as csvfile:
+            file_fields = tuple(csvfile.readline().strip().split(","))
 
-        if not _fields == file_fields:
-            raise FieldsMismatchError(
-                f"'fields' does not agree with the fields defined in {self._path}"
+        if self._has_missing_field_names(file_fields):
+            raise MissingFieldsError(
+                f"Database file {self._path} contains empty field names."
             )
 
-        return _fields
+        if repeated_fields := self._make_repeated_fields_str(file_fields):
+            raise RepeatedFieldsError(
+                f"Database file {self._path} contains repeated fields: {repeated_fields}."
+            )
+
+        if not set(self._fields) == set(file_fields):
+            raise FieldsMismatchError(
+                f"'{self._fields_arg}' does not agree with the fields defined in {self._path}."
+            )
+
+    @staticmethod
+    def _has_missing_field_names(fields: Collection[str]):
+        return any(f == "" for f in fields)
+
+    @staticmethod
+    def _make_repeated_fields_str(fields: Collection[str]):
+        return ", ".join(sorted({f"'{f}'" for f in fields if fields.count(f) > 1}))
 
     def create(self, record: dict[str, Any]):
         missing_fields = ", ".join([f"'{k}'" for k in self._fields if k not in record])
@@ -111,35 +130,12 @@ class FieldsMismatchError(Exception):
 
 
 class RepeatedFieldsError(Exception):
-    def __init__(self, *args, repeated_fields: tuple[str] = None):
-        super().__init__(*args)
-        self._repeated_fields = repeated_fields
-        self._repeated_fields_str = ", ".join(f"'{f}'" for f in repeated_fields)
+    pass
 
-    @property
-    def repeated_fields(self):
-        return self._repeated_fields
 
-    @property
-    def repeated_fields_str(self):
-        return self._repeated_fields_str
+class MissingFieldsError(Exception):
+    pass
 
 
 class DatabaseLookupError(Exception):
     pass
-
-
-class _Fields(tuple):
-    def __new__(cls, iterable: Iterable[str]):
-        return super().__new__(cls, iterable)
-
-    def __init__(self, iterable: Iterable[str]):
-        self._check_repeated_fields()
-
-    def _check_repeated_fields(self) -> None:
-        repeated_fields = sorted({f for f in self if self.count(f) > 1})
-        if repeated_fields:
-            raise RepeatedFieldsError(repeated_fields=repeated_fields)
-
-    def __eq__(self, other: _Fields):
-        return set(self) == set(other)
