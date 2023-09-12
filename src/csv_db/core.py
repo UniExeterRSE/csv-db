@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import csv
 import pathlib
 from collections.abc import Callable, Collection, Iterator
-from typing import Any, Optional, TypeAlias
+from typing import Any, Iterable, Optional, TypeAlias
 
 Record: TypeAlias = dict[str, str]
 
@@ -9,36 +11,33 @@ Record: TypeAlias = dict[str, str]
 class CsvDB(object):
     def __init__(self, path: str, fields: Collection[str]):
         self._path = pathlib.Path(path)
-        self._fields = fields
-        self._verify_fields()
+        self._fields = self._make_fields(fields)
 
-    def _verify_fields(self) -> None:
-        self._check_repeated_fields(
-            self._fields, "Argument 'fields' contains repeated fields"
-        )
+    def _make_fields(self, fields: Collection[str]) -> _Fields:
+        try:
+            _fields = _Fields(fields)
+        except RepeatedFieldsError as exc:
+            msg = (
+                f"Argument 'fields' contains repeated fields: {exc.repeated_fields_str}."
+            )
+            raise exc.__class__(msg, repeated_fields=exc.repeated_fields)
 
         if not self._path.exists():
-            return None
+            return _fields
 
-        with open(self._path, mode="r") as csvfile:
-            fields = csvfile.readline().strip().split(",")
+        try:
+            with open(self._path, mode="r") as csvfile:
+                file_fields = _Fields(csvfile.readline().strip().split(","))
+        except RepeatedFieldsError as exc:
+            msg = f"Database file {self._path} contains repeated fields: {exc.repeated_fields_str}."
+            raise exc.__class__(msg, repeated_fields=exc.repeated_fields)
 
-        self._check_repeated_fields(
-            fields, f"Database file {self._path} contains repeated fields"
-        )
-
-        if not set(self._fields) == set(fields):
+        if not _fields == file_fields:
             raise FieldsMismatchError(
                 f"'fields' does not agree with the fields defined in {self._path}"
             )
 
-    @staticmethod
-    def _check_repeated_fields(fields: Collection[str], exc_msg_start: str) -> None:
-        repeated_fields = ", ".join(
-            sorted({f"'{f}'" for f in fields if fields.count(f) > 1})
-        )
-        if repeated_fields:
-            raise RepeatedFieldsError(f"{exc_msg_start}: {repeated_fields}.")
+        return _fields
 
     def create(self, record: dict[str, Any]):
         missing_fields = ", ".join([f"'{k}'" for k in self._fields if k not in record])
@@ -54,19 +53,21 @@ class CsvDB(object):
             writer.writerow(record)
 
     def retrieve(self, value: Any, field: str) -> Optional[Record]:
+        self._validate_field(field)
         if not self._path.exists():
             return None
 
         with open(self._path, mode="r", newline="") as csvfile:
             reader = self._make_data_reader(csvfile)
             for row in reader:
-                try:
-                    if row[field] == str(value):
-                        return row
-                except KeyError as exc:
-                    raise DatabaseLookupError(
-                        f"'{field}' does not define a field in the database."
-                    ) from exc
+                if row[field] == str(value):
+                    return row
+
+    def _validate_field(self, field: str):
+        if field not in self._fields:
+            raise DatabaseLookupError(
+                f"'{field}' does not define a field in the database."
+            )
 
     def _make_data_reader(self, csvfile: Iterator[Record]):
         reader = csv.DictReader(csvfile, self._fields)
@@ -89,14 +90,11 @@ class CsvDB(object):
                 raise exc.__class__(f"Bad 'predicate_fn': {exc}") from exc
 
     def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
+        self._validate_field(field)
         records = self.query()
+        field_values = [rec[field] for rec in records]
         try:
-            field_values = [rec[field] for rec in records]
             records[field_values.index(str(value))] = record
-        except KeyError as exc:
-            raise DatabaseLookupError(
-                f"'{field}' does not define a field in the database."
-            ) from exc
         except ValueError as exc:
             raise DatabaseLookupError(
                 f"Could not find record with {field} = {value}."
@@ -113,8 +111,35 @@ class FieldsMismatchError(Exception):
 
 
 class RepeatedFieldsError(Exception):
-    pass
+    def __init__(self, *args, repeated_fields: tuple[str] = None):
+        super().__init__(*args)
+        self._repeated_fields = repeated_fields
+        self._repeated_fields_str = ", ".join(f"'{f}'" for f in repeated_fields)
+
+    @property
+    def repeated_fields(self):
+        return self._repeated_fields
+
+    @property
+    def repeated_fields_str(self):
+        return self._repeated_fields_str
 
 
 class DatabaseLookupError(Exception):
     pass
+
+
+class _Fields(tuple):
+    def __new__(cls, iterable: Iterable[str]):
+        return super().__new__(cls, iterable)
+
+    def __init__(self, iterable: Iterable[str]):
+        self._check_repeated_fields()
+
+    def _check_repeated_fields(self) -> None:
+        repeated_fields = sorted({f for f in self if self.count(f) > 1})
+        if repeated_fields:
+            raise RepeatedFieldsError(repeated_fields=repeated_fields)
+
+    def __eq__(self, other: _Fields):
+        return set(self) == set(other)

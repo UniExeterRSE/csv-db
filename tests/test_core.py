@@ -22,7 +22,7 @@ def exact(string: str):
     return "^" + escaped + "$"
 
 
-def write_csv_row(path, data: Iterable[str], mode="x"):
+def write_csv_row(path: str, data: Iterable[str], mode="x"):
     """Write data to a csv file as a comma-separated row."""
     with open(path, mode=mode, newline="") as f:
         f.write(",".join(data) + "\n")
