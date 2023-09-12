@@ -338,19 +338,19 @@ class TestCsvDB(unittest.TestCase):
         """Test that no records are returned by the query if the database csv file hasn't
         been created yet."""
 
-        self.assertEqual([], self.db.query())
+        self.assertEqual(tuple(), self.db.query())
 
     def test_query_no_records_in_db(self):
         """Test that no records are returned when the database has no records in it."""
 
         write_csv_row(self.path, self.fields)
-        self.assertEqual([], self.db.query())
+        self.assertEqual(tuple(), self.db.query())
 
     def test_query_no_arg_return_all_records(self):
         """Test that all records from the database are returned when no predicate
         function is supplied."""
 
-        expected = [self.record, self.record2]
+        expected = (self.record, self.record2)
         self.assertEqual(expected, self.db2.query())
 
     def test_query_existing_file_fields_have_diff_order(self):
@@ -358,12 +358,12 @@ class TestCsvDB(unittest.TestCase):
         different order to those supplied at initialisation."""
 
         self.dbrev.create(self.record)
-        self.assertEqual([self.record], self.dbrev.query())
+        self.assertEqual((self.record,), self.dbrev.query())
 
     def test_query_predicate_fn(self):
         """Test that a supplied predicate function is applied as a filter when querying."""
 
-        expected = [self.record, self.record3]
+        expected = (self.record, self.record3)
         self.assertEqual(
             expected, self.db4.query(lambda x: x[self.col1] == self.record[self.col1])
         )
@@ -372,7 +372,7 @@ class TestCsvDB(unittest.TestCase):
         """Test that a supplied predicate function that evaluates to ``False`` on every
         record results in a query with no records."""
 
-        self.assertEqual([], self.db4.query(lambda x: False))
+        self.assertEqual(tuple(), self.db4.query(lambda x: False))
 
     def test_query_invalid_predicate_fn_field_lookup_error(self):
         """Test that a DatabaseLookupError is raised if the predicate function examines a

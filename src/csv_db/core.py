@@ -95,12 +95,12 @@ class CsvDB(object):
 
     def query(
         self, predicate_fn: Optional[Callable[[Record], bool]] = None
-    ) -> list[Record]:
+    ) -> tuple[Record]:
         if not self._path.exists():
-            return []
+            return tuple()
         with open(self._path, mode="r", newline="") as csvfile:
             try:
-                return list(filter(predicate_fn, self._make_data_reader(csvfile)))
+                return tuple(filter(predicate_fn, self._make_data_reader(csvfile)))
             except KeyError as exc:
                 raise DatabaseLookupError(
                     "Bad 'predicate_fn': attempted to look up a field not in the database."
@@ -110,8 +110,8 @@ class CsvDB(object):
 
     def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
         self._validate_field(field)
-        records = self.query()
-        field_values = [rec[field] for rec in records]
+        records = list(self.query())
+        field_values = tuple(rec[field] for rec in records)
         try:
             records[field_values.index(str(value))] = record
         except ValueError as exc:
