@@ -3,13 +3,15 @@ from __future__ import annotations
 import csv
 import pathlib
 from collections.abc import Callable, Collection, Iterator
+from os import PathLike
 from typing import Any, Optional, TypeAlias
 
 Record: TypeAlias = dict[str, str]
+Path: TypeAlias = str | PathLike
 
 
 class CsvDB(object):
-    def __init__(self, path: str, fields: Collection[str]):
+    def __init__(self, path: Path, fields: Collection[str]):
         self._path = pathlib.Path(path)
         self._fields = fields
         self._fields_arg = "fields"

@@ -1,4 +1,5 @@
 import os
+import pathlib
 import tempfile
 import unittest
 from typing import Iterable
@@ -8,6 +9,7 @@ from csv_db.core import (
     DatabaseLookupError,
     FieldsMismatchError,
     MissingFieldsError,
+    Path,
     RepeatedFieldsError,
 )
 
@@ -23,7 +25,7 @@ def exact(string: str):
     return "^" + escaped + "$"
 
 
-def write_csv_row(path: str, data: Iterable[str], mode="x"):
+def write_csv_row(path: Path, data: Iterable[str], mode="x"):
     """Write data to a csv file as a comma-separated row."""
     with open(path, mode=mode, newline="") as f:
         f.write(",".join(data) + "\n")
@@ -44,7 +46,7 @@ class TestCsvDB(unittest.TestCase):
         self.record = {self.pkey: "1", self.col1: "a"}
 
         # Database with two records in it
-        self.path2 = os.path.join(self.tmp_dir, "db2.csv")
+        self.path2 = pathlib.Path(self.tmp_dir, "db2.csv")
         self.db2 = CsvDB(self.path2, self.fields)
         self.record2 = {self.pkey: "2", self.col1: "b"}
         self.db2.create(self.record)
