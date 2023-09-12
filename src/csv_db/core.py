@@ -1,7 +1,9 @@
 import csv
 import pathlib
 from collections.abc import Callable, Collection, Iterator
-from typing import Any, Optional
+from typing import Any, Optional, TypeAlias
+
+Record: TypeAlias = dict[str, str]
 
 
 class CsvDB(object):
@@ -51,7 +53,7 @@ class CsvDB(object):
                 writer.writeheader()
             writer.writerow(record)
 
-    def retrieve(self, value: Any, field: str) -> Optional[dict[str, str]]:
+    def retrieve(self, value: Any, field: str) -> Optional[Record]:
         if not self._path.exists():
             return None
 
@@ -66,14 +68,14 @@ class CsvDB(object):
                         f"'{field}' does not define a field in the database."
                     ) from exc
 
-    def _make_data_reader(self, csvfile: Iterator[dict[str, str]]):
+    def _make_data_reader(self, csvfile: Iterator[Record]):
         reader = csv.DictReader(csvfile, self._fields)
         _ = next(reader)
         return reader
 
     def query(
-        self, predicate_fn: Optional[Callable[[dict[str, str]], bool]] = None
-    ) -> list[dict[str, str]]:
+        self, predicate_fn: Optional[Callable[[Record], bool]] = None
+    ) -> list[Record]:
         if not self._path.exists():
             return []
         with open(self._path, mode="r", newline="") as csvfile:
