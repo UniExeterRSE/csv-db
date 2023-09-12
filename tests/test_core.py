@@ -83,7 +83,7 @@ class TestCsvDB(unittest.TestCase):
     def test_initialise_empty_fields_error(self):
         """Test that a ValueError is raised if an empty collection of fields is provided."""
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             ValueError, exact("Argument 'fields' defines an empty collection.")
         ):
             _ = CsvDB(self.path, [])
@@ -92,7 +92,7 @@ class TestCsvDB(unittest.TestCase):
         """Test that a ValueError is raised if a collection of fields is provided that
         contains empty field names."""
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             ValueError,
             exact("Argument 'fields' contains empty field names."),
         ):
@@ -103,7 +103,7 @@ class TestCsvDB(unittest.TestCase):
         existing csv file that contains empty field names."""
 
         write_csv_row(self.path, ["a", ""])
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             MissingFieldsError,
             exact(f"Database file {self.path} contains empty field names."),
         ):
@@ -115,7 +115,7 @@ class TestCsvDB(unittest.TestCase):
 
         fields = ["a", "b", "c"]
         write_csv_row(self.path, ["a", "a", "b", "b", "c"])
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             RepeatedFieldsError,
             exact(f"Database file {self.path} contains repeated fields: 'a', 'b'."),
         ):
@@ -125,7 +125,7 @@ class TestCsvDB(unittest.TestCase):
         """Test that a RepeatedFieldsError is raised if the fields supplied at
         initialisation contain repeats."""
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             RepeatedFieldsError,
             exact("Argument 'fields' contains repeated fields: 'a', 'b'."),
         ):
@@ -261,7 +261,7 @@ class TestCsvDB(unittest.TestCase):
         a field in the database."""
 
         field = "not-present"
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             DatabaseLookupError,
             exact(f"'{field}' does not define a field in the database."),
         ):
@@ -304,7 +304,7 @@ class TestCsvDB(unittest.TestCase):
         a field in the database."""
 
         field = "not-present"
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             DatabaseLookupError,
             exact(f"'{field}' does not define a field in the database."),
         ):
@@ -315,7 +315,7 @@ class TestCsvDB(unittest.TestCase):
         update cannot be found in the database."""
 
         val = "-1"
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             DatabaseLookupError,
             exact(f"Could not find record with {self.pkey} = {val}."),
         ):
@@ -328,7 +328,7 @@ class TestCsvDB(unittest.TestCase):
 
         write_csv_row(self.path, self.fields)
         val = self.pkey
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             DatabaseLookupError,
             exact(f"Could not find record with {self.pkey} = {val}."),
         ):
@@ -379,7 +379,7 @@ class TestCsvDB(unittest.TestCase):
         a field that is not in the database."""
 
         missing_field = "col2"
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             DatabaseLookupError,
             exact(
                 "Bad 'predicate_fn': attempted to look up a field not in the database."
@@ -392,7 +392,7 @@ class TestCsvDB(unittest.TestCase):
         function, a descriptive error message indicating as such is given."""
 
         not_callable = 3
-        with self.assertRaisesRegexp(Exception, "^Bad 'predicate_fn': "):
+        with self.assertRaisesRegex(Exception, "^Bad 'predicate_fn': "):
             self.db4.query(not_callable)
 
 
