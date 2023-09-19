@@ -161,12 +161,12 @@ class TestCsvDB(unittest.TestCase):
 
     def test_create_take_non_string_values(self):
         """Test that records can be created and retrieved based on non-string
-        values."""
+        values, including a ``None`` value."""
 
-        record = {self.pkey: 1, self.col1: 2}
+        record = {self.pkey: 1, self.col1: None}
         self.db.create(record)
         self.assertEqual(
-            {self.pkey: "1", self.col1: "2"},
+            {self.pkey: "1", self.col1: ""},
             self.db.retrieve(record[self.pkey], self.pkey),
         )
 
