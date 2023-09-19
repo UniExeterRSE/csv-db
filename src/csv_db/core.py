@@ -35,12 +35,12 @@ class CsvDB(object):
     Raises
     ------
     ValueError
-        If the supplied `fields` is empty or contains empty strings.
+        If the supplied `fields` is empty, contains empty strings or contains repeated
+        strings.
     MissingFieldsError
         If the csv database file at `path` contains empty field names.
     RepeatedFieldsError
-        If `fields` contains repetitions, of if the csv database file at `path` contains
-        repeated field names in its first row.
+        If the csv database file at `path` contains repeated field names in its first row.
     FieldsMismatchError
         If the supplied `fields` does not define the same set of field names as present
         in the csv file at `path`.
@@ -71,7 +71,7 @@ class CsvDB(object):
             raise ValueError(f"Argument '{self._fields_arg}' contains empty field names.")
 
         if repeated_fields := self._make_repeated_fields_str(self._fields):
-            raise RepeatedFieldsError(
+            raise ValueError(
                 f"Argument '{self._fields_arg}' contains repeated fields: {repeated_fields}."
             )
 

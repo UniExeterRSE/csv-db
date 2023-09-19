@@ -124,11 +124,11 @@ class TestCsvDB(unittest.TestCase):
             _ = CsvDB(self.path, fields)
 
     def test_initialise_repeated_fields_error(self):
-        """Test that a RepeatedFieldsError is raised if the fields supplied at
+        """Test that a ValueError is raised if the fields supplied at
         initialisation contain repeats."""
 
         with self.assertRaisesRegex(
-            RepeatedFieldsError,
+            ValueError,
             exact("Argument 'fields' contains repeated fields: 'a', 'b'."),
         ):
             _ = CsvDB(self.path, ["a", "a", "b", "b", "c"])
