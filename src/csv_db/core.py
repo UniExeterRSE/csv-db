@@ -11,13 +11,57 @@ Path: TypeAlias = str | PathLike
 
 
 class CsvDB(object):
+    """A class for interfacing with a simple database backed by a csv file.
+
+    A `CsvDB` instance is initialised with a file path that defines a csv file, either
+    an existing file or one that doesn't yet exist. In the case where the file exists, the
+    file will be used as the underlying database file where records are recorded and
+    retrieved. In this case, it is assumed that the first row of the csv file contains the
+    field names of the database and these are checked against the fields supplied during
+    initialisation.
+
+    If the csv file doesn't exist at the supplied path, then it will be created when
+    adding the first record to the database via the `create()` method.
+
+    Parameters
+    ----------
+    path : str or os.PathLike
+        The file path to a csv file.
+    fields : Collection[str]
+        A collection of field names to be used for the database. This should not contain
+        repeated field names or the empty string. If the csv file at `path` exists, then
+        `fields` should match the fields defined as the header row in the file.
+
+    Raises
+    ------
+    ValueError
+        If the supplied `fields` is empty or contains empty strings.
+    MissingFieldsError
+        If the csv database file at `path` contains empty field names.
+    RepeatedFieldsError
+        If `fields` contains repetitions, of if the csv database file at `path` contains
+        repeated field names in its first row.
+    FieldsMismatchError
+        If the supplied `fields` does not define the same set of field names as present
+        in the csv file at `path`.
+    """
+
     def __init__(self, path: Path, fields: Collection[str]):
         self._path = pathlib.Path(path)
         self._fields = fields
-        self._fields_arg = "fields"
+        self._fields_arg = "fields"  # should match the name of the argument in __init__
         self._validate_db_initialisation()
 
     def _validate_db_initialisation(self) -> None:
+        """Perform checks on the supplied fields and, if present, those in the csv file.
+
+        Checks that:
+        * The collection of field names is not empty.
+        * None of the field names are missing, i.e. the empty string.
+        * None of the field names are repeated.
+        * The supplied fields agree with those in the csv file, if the latter is present.
+        """
+
         if len(self._fields) == 0:
             raise ValueError(
                 f"Argument '{self._fields_arg}' defines an empty collection."
@@ -53,14 +97,39 @@ class CsvDB(object):
             )
 
     @staticmethod
-    def _has_missing_field_names(fields: Collection[str]):
+    def _has_missing_field_names(fields: Collection[str]) -> bool:
+        """Returns ``True`` if the empty string is in the collection `fields`."""
+
         return any(f == "" for f in fields)
 
     @staticmethod
-    def _make_repeated_fields_str(fields: Collection[str]):
+    def _make_repeated_fields_str(fields: Collection[str]) -> str:
+        """Make a string representation of repeated fields that is suitable for use in
+        error messages."""
+
         return ", ".join(sorted({f"'{f}'" for f in fields if fields.count(f) > 1}))
 
-    def create(self, record: dict[str, Any]):
+    def create(self, record: dict[str, Any]) -> None:
+        """Add a new record to the underlying database csv file.
+
+        If the underlying csv file does not exist then it will be created before adding
+        the record to it. Values are converted to strings by using the ``str()`` function
+        before writing to the database. In particular, ``None`` values are converted to
+        the empty string.
+
+        Parameters
+        ----------
+        record : dict[str, Any]
+            The record data to write to the database. The keys should consist of the
+            field names in the database and the values should be the values to record
+            against the corresponding field.
+
+        Raises
+        ------
+        ValueError
+            If the record is missing any of the fields of the database.
+        """
+
         missing_fields = ", ".join([f"'{k}'" for k in self._fields if k not in record])
         if missing_fields:
             raise ValueError(
@@ -74,6 +143,39 @@ class CsvDB(object):
             writer.writerow(record)
 
     def retrieve(self, value: Any, field: str) -> Optional[Record]:
+        """Retrieve the first record with a specified value for a field.
+
+        If no record such record is found, then ``None`` is returned. Database records are
+        ordered according to the order in which they were added, in a 'first in, first
+        out' fashion.
+
+        Parameters
+        ----------
+        value : Any
+            The value to match on. This will be coverted to a string before performing
+            the lookup.
+        field : str
+            The field against which to look up the given `value`.
+
+        Returns
+        -------
+        dict[str, str] or None
+            The first record whose value at the given `field` matches `value` (after
+            string conversion, if necessary), or ``None`` if no such record was found.
+
+        Raises
+        ------
+        DatabaseLookupError
+            If the field supplied does not exist in the database.
+
+        Notes
+        -----
+        The main use case for `retrieve()` is to retrieve records by field values that
+        uniquely define records. In other cases, it is possible that `retrieve()` will not
+        return the record desired, since it just returns the first matching record it
+        finds with `field` set to `value`.
+        """
+
         self._validate_field(field)
         if not self._path.exists():
             return None
@@ -84,13 +186,17 @@ class CsvDB(object):
                 if row[field] == str(value):
                     return row
 
-    def _validate_field(self, field: str):
+    def _validate_field(self, field: str) -> None:
+        """Check that the given field is present in the database."""
+
         if field not in self._fields:
             raise DatabaseLookupError(
                 f"'{field}' does not define a field in the database."
             )
 
-    def _make_data_reader(self, csvfile: Iterator[Record]):
+    def _make_data_reader(self, csvfile: Iterator[Record]) -> csv.DictReader:
+        """Make a reader that iterates through all non-header records."""
+
         reader = csv.DictReader(csvfile, self._fields)
         _ = next(reader)
         return reader
@@ -98,6 +204,30 @@ class CsvDB(object):
     def query(
         self, predicate_fn: Optional[Callable[[Record], bool]] = None
     ) -> tuple[Record]:
+        """Return all records matching some condition.
+
+        The condition to filter the records on should be expressed as a function that maps
+        records to boolean values. This will be evaluated on each record in the database
+        and only those records evaluating to ``True`` will be returned.
+
+        Parameters
+        ----------
+        predicte_fn : Callable[[dict[str, str]], bool], optional
+            (Default: ``None``) A function that maps a record to a boolean value. If
+            ``None`` then all records in the database will be returned.
+
+        Returns
+        -------
+        tuple[dict[str, str]]
+            All records in the database on which the `predicate_fn` evaluates to ``True``.
+
+        Raises
+        ------
+        DatabaseLookupError
+            If the predicate function attempts to access a field that is not present in
+            the database.
+        """
+
         if not self._path.exists():
             return tuple()
         with open(self._path, mode="r", newline="") as csvfile:
@@ -111,6 +241,43 @@ class CsvDB(object):
                 raise exc.__class__(f"Bad 'predicate_fn': {exc}") from exc
 
     def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
+        """Update a record matching a given field/value combination.
+
+        The first record in the database whose `field` entry matches `value` (after string
+        conversion) will be replaced with the given record. Database records are ordered
+        according to the order in which they were added, in a 'first in, first out'
+        fashion. As with the `create()` method, values in `record` are converted to
+        strings by using the ``str()`` function before writing to the database; in
+        particular, ``None`` values are converted to the empty string.
+
+        Parameters
+        ----------
+        value : Any
+            The value to match on when looking up the record to replace. This will be
+            coverted to a string before performing the lookup.
+        field : str
+            The field against which to look up the given `value` when locating the
+            record to replace.
+        record : dict[str, Any]
+            The new record with which to replace the old record. The keys should consist
+            of the field names in the database and the values should be the values to
+            record against the corresponding field.
+
+        Raises
+        ------
+        DatabaseLookupError
+            If one of the following occurs:
+            * The field supplied does not exist in the database.
+            * A record cannot be found with the given `field`/`value` combination.
+
+        Notes
+        -----
+        As with the `retrieve()` method, the main use case of `update()` is to update
+        records by field values that uniquely define records. In other cases, it is
+        possible that `update()` will not update the desired record, since it just updates
+        the first matching record it finds with `field` set to `value`.
+        """
+
         self._validate_field(field)
         records = list(self.query())
         field_values = tuple(rec[field] for rec in records)
