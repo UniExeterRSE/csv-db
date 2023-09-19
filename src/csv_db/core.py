@@ -295,16 +295,24 @@ class CsvDB(object):
 
 
 class FieldsMismatchError(Exception):
+    """Raised when two collections of database field names do not agree."""
+
     pass
 
 
 class RepeatedFieldsError(Exception):
+    """Raised when a collection of field names contains repetitions."""
+
     pass
 
 
 class MissingFieldsError(Exception):
+    """Raised when a collection of field names is empty."""
+
     pass
 
 
 class DatabaseLookupError(Exception):
+    """Raised when attempting to look up a non-existant record in a database."""
+
     pass
