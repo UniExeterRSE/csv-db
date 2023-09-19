@@ -148,7 +148,7 @@ class TestCsvDB(unittest.TestCase):
         """Test that a record can be retrieved based on the value of a column."""
 
         self.db.create(self.record)
-        self.assertEqual(self.record, self.db.retrieve(self.record[self.pkey], self.pkey))
+        self.assertEqual(self.record, self.db.retrieve(self.pkey, self.record[self.pkey]))
 
     def test_create_makes_csv_with_header(self):
         """Test that a header row is written in the csv file when a first record is
@@ -167,7 +167,7 @@ class TestCsvDB(unittest.TestCase):
         self.db.create(record)
         self.assertEqual(
             {self.pkey: "1", self.col1: ""},
-            self.db.retrieve(record[self.pkey], self.pkey),
+            self.db.retrieve(self.pkey, record[self.pkey]),
         )
 
     def test_create_error_missing_field(self):
@@ -198,7 +198,7 @@ class TestCsvDB(unittest.TestCase):
         self.db.create(self.record)
         self.db.create(record2)
         for record in [self.record, record2]:
-            self.assertEqual(record, self.db.retrieve(record[self.pkey], self.pkey))
+            self.assertEqual(record, self.db.retrieve(self.pkey, record[self.pkey]))
 
     def test_create_multiple_records_csv_content(self):
         """Test that the csv file has the expected content when multple records are
@@ -227,8 +227,8 @@ class TestCsvDB(unittest.TestCase):
         record2 = {self.pkey: "2", self.col1: "b"}
         db.create(record2)
 
-        self.assertEqual(self.record, db.retrieve(self.record[self.pkey], self.pkey))
-        self.assertEqual(record2, db.retrieve(record2[self.pkey], self.pkey))
+        self.assertEqual(self.record, db.retrieve(self.pkey, self.record[self.pkey]))
+        self.assertEqual(record2, db.retrieve(self.pkey, record2[self.pkey]))
 
     def test_create_add_records_to_existing_file_fields_have_diff_order(self):
         """Test that a record can be added to a database in which the fields are in a
@@ -236,20 +236,20 @@ class TestCsvDB(unittest.TestCase):
 
         self.dbrev.create(self.record)
         self.assertEqual(
-            self.record, self.dbrev.retrieve(self.record[self.pkey], self.pkey)
+            self.record, self.dbrev.retrieve(self.pkey, self.record[self.pkey])
         )
 
     def test_retrieve_no_file_return_none(self):
         """Test that ``None`` is returned if the csv file behind the database hasn't
         been created yet."""
 
-        self.assertIsNone(self.db.retrieve("2", self.pkey))
+        self.assertIsNone(self.db.retrieve(self.pkey, "2"))
 
     def test_retrieve_no_records_in_db(self):
         """Test that no record is returned when the database has no records in it."""
 
         write_csv_row(self.path, self.fields)
-        self.assertEqual(None, self.db.retrieve("1", self.pkey))
+        self.assertEqual(None, self.db.retrieve(self.pkey, "1"))
 
     def test_retrieve_no_record_return_none(self):
         """Test that ``None`` is returned if no record exists with the given field/value
@@ -267,7 +267,7 @@ class TestCsvDB(unittest.TestCase):
             DatabaseLookupError,
             exact(f"'{field}' does not define a field in the database."),
         ):
-            self.db2.retrieve("1", field)
+            self.db2.retrieve(field, "1")
 
     def test_update_replaces_correct_record(self):
         """Test that the record with the specified field value gets updated and no other
@@ -275,10 +275,10 @@ class TestCsvDB(unittest.TestCase):
 
         lookup_val = self.record2[self.pkey]
         updated_record = {self.pkey: lookup_val, self.col1: "c"}
-        self.db2.update(lookup_val, self.pkey, updated_record)
-        self.assertEqual(updated_record, self.db2.retrieve(lookup_val, self.pkey))
+        self.db2.update(self.pkey, lookup_val, updated_record)
+        self.assertEqual(updated_record, self.db2.retrieve(self.pkey, lookup_val))
         self.assertEqual(
-            self.record, self.db2.retrieve(self.record[self.pkey], self.pkey)
+            self.record, self.db2.retrieve(self.pkey, self.record[self.pkey])
         )
 
     def test_update_replaces_record_convert_value_to_str(self):
@@ -287,8 +287,8 @@ class TestCsvDB(unittest.TestCase):
 
         self.db.create(self.record)
         new_record = {self.pkey: "1", self.col1: "b"}
-        self.db.update(1, self.pkey, new_record)
-        self.assertEqual(new_record, self.db.retrieve(new_record[self.pkey], self.pkey))
+        self.db.update(self.pkey, 1, new_record)
+        self.assertEqual(new_record, self.db.retrieve(self.pkey, new_record[self.pkey]))
 
     def test_update_replaces_record_existing_file_fields_have_diff_order(self):
         """Test that a record can be updated when the fields in the database file are in a
@@ -296,9 +296,9 @@ class TestCsvDB(unittest.TestCase):
 
         self.dbrev.create(self.record)
         new_record = {self.pkey: "1", self.col1: "b"}
-        self.dbrev.update(1, self.pkey, new_record)
+        self.dbrev.update(self.pkey, 1, new_record)
         self.assertEqual(
-            new_record, self.dbrev.retrieve(new_record[self.pkey], self.pkey)
+            new_record, self.dbrev.retrieve(self.pkey, new_record[self.pkey])
         )
 
     def test_update_missing_field_error(self):
@@ -310,7 +310,7 @@ class TestCsvDB(unittest.TestCase):
             DatabaseLookupError,
             exact(f"'{field}' does not define a field in the database."),
         ):
-            self.db2.update("1", field, self.record)
+            self.db2.update(field, "1", self.record)
 
     def test_update_cannot_find_record_error(self):
         """Test that a DatabaseLookupError is raised if the key/value combination supplied to
@@ -321,7 +321,7 @@ class TestCsvDB(unittest.TestCase):
             DatabaseLookupError,
             exact(f"Could not find record with {self.pkey} = {val}."),
         ):
-            self.db2.update(val, self.pkey, self.record)
+            self.db2.update(self.pkey, val, self.record)
 
     def test_update_no_records_in_db_error(self):
         """Test that a DatabaseLookupError is raised if there are no records in the
@@ -334,7 +334,7 @@ class TestCsvDB(unittest.TestCase):
             DatabaseLookupError,
             exact(f"Could not find record with {self.pkey} = {val}."),
         ):
-            self.db.update(val, self.pkey, self.record)
+            self.db.update(self.pkey, val, self.record)
 
     def test_query_no_file(self):
         """Test that no records are returned by the query if the database csv file hasn't

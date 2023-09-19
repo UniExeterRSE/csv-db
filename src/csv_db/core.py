@@ -142,7 +142,7 @@ class CsvDB(object):
                 writer.writeheader()
             writer.writerow(record)
 
-    def retrieve(self, value: Any, field: str) -> Optional[Record]:
+    def retrieve(self, field: str, value: Any) -> Optional[Record]:
         """Retrieve the first record with a specified value for a field.
 
         If no record such record is found, then ``None`` is returned. Database records are
@@ -151,11 +151,11 @@ class CsvDB(object):
 
         Parameters
         ----------
+        field : str
+            The field against which to look up the given `value`.
         value : Any
             The value to match on. This will be coverted to a string before performing
             the lookup.
-        field : str
-            The field against which to look up the given `value`.
 
         Returns
         -------
@@ -240,7 +240,7 @@ class CsvDB(object):
             except Exception as exc:
                 raise exc.__class__(f"Bad 'predicate_fn': {exc}") from exc
 
-    def update(self, value: Any, field: str, record: dict[str, Any]) -> None:
+    def update(self, field: str, value: Any, record: dict[str, Any]) -> None:
         """Update a record matching a given field/value combination.
 
         The first record in the database whose `field` entry matches `value` (after string
@@ -252,12 +252,12 @@ class CsvDB(object):
 
         Parameters
         ----------
-        value : Any
-            The value to match on when looking up the record to replace. This will be
-            coverted to a string before performing the lookup.
         field : str
             The field against which to look up the given `value` when locating the
             record to replace.
+        value : Any
+            The value to match on when looking up the record to replace. This will be
+            coverted to a string before performing the lookup.
         record : dict[str, Any]
             The new record with which to replace the old record. The keys should consist
             of the field names in the database and the values should be the values to
