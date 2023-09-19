@@ -50,9 +50,9 @@ class CsvDB(object):
         self._path = pathlib.Path(path)
         self._fields = fields
         self._fields_arg = "fields"  # should match the name of the argument in __init__
-        self._validate_db_initialisation()
+        self._validate_fields()
 
-    def _validate_db_initialisation(self) -> None:
+    def _validate_fields(self) -> None:
         """Perform checks on the supplied fields and, if present, those in the csv file.
 
         Checks that:
@@ -67,10 +67,10 @@ class CsvDB(object):
                 f"Argument '{self._fields_arg}' defines an empty collection."
             )
 
-        if self._has_missing_field_names(self._fields):
+        if self._any_missing(self._fields):
             raise ValueError(f"Argument '{self._fields_arg}' contains empty field names.")
 
-        if repeated_fields := self._make_repeated_fields_str(self._fields):
+        if repeated_fields := self._make_repetitions_str(self._fields):
             raise ValueError(
                 f"Argument '{self._fields_arg}' contains repeated fields: {repeated_fields}."
             )
@@ -81,12 +81,12 @@ class CsvDB(object):
         with open(self._path, mode="r") as csvfile:
             file_fields = tuple(csvfile.readline().strip().split(","))
 
-        if self._has_missing_field_names(file_fields):
+        if self._any_missing(file_fields):
             raise MissingFieldsError(
                 f"Database file {self._path} contains empty field names."
             )
 
-        if repeated_fields := self._make_repeated_fields_str(file_fields):
+        if repeated_fields := self._make_repetitions_str(file_fields):
             raise RepeatedFieldsError(
                 f"Database file {self._path} contains repeated fields: {repeated_fields}."
             )
@@ -97,17 +97,17 @@ class CsvDB(object):
             )
 
     @staticmethod
-    def _has_missing_field_names(fields: Collection[str]) -> bool:
-        """Returns ``True`` if the empty string is in the collection `fields`."""
+    def _any_missing(coll: Collection[str]) -> bool:
+        """Returns ``True`` if the empty string is in the collection `coll`."""
 
-        return any(f == "" for f in fields)
+        return any(x == "" for x in coll)
 
     @staticmethod
-    def _make_repeated_fields_str(fields: Collection[str]) -> str:
-        """Make a string representation of repeated fields that is suitable for use in
+    def _make_repetitions_str(coll: Collection[str]) -> str:
+        """Make a string representation of repeated elements, that is suitable for use in
         error messages."""
 
-        return ", ".join(sorted({f"'{f}'" for f in fields if fields.count(f) > 1}))
+        return ", ".join(sorted({f"'{x}'" for x in coll if coll.count(x) > 1}))
 
     def create(self, record: dict[str, Any]) -> None:
         """Add a new record to the underlying database csv file.
