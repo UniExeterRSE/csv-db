@@ -1,9 +1,16 @@
 # csv-db
 
-A Python package for working with a simple csv file database.
+A Python package for working with a simple databse backed by a csv file.
+
+The aim of this package is to provide a simple way of working with tabular data in a
+csv file. The focus is on simplicity rather than performance. The package provides a class
+for interfacing with such a csv file, equipped with methods for creating, retrieving and
+updating records in the file. It has no dependencies other than the Python standard
+library.
+
 -----
 
-**Table of Contents**
+## Table of Contents
 
 - [Installation](#installation)
   - [Updating](#updating)
@@ -12,6 +19,7 @@ A Python package for working with a simple csv file database.
   - [Creating new records](#creating-new-records)
   - [Retrieving records](#retrieving-records)
   - [Updating records](#updating-records)
+  - [Gotcha: exception handling when interacting with the database](#gotcha-exception-handling-when-interacting-with-the-database)
 - [Licence](#licence)
 
 
@@ -162,6 +170,27 @@ We can see that the record has been updated:
 >>> db.retrieve(field="ID", value="5")
 {'ID': '5', 'Name': "Santa's Little Helper", 'Age': '4', 'Species': 'Dog'}
 ```
+
+
+### Gotcha: exception handling when interacting with the database
+
+The basic way that the methods of the `CsvDB` class work is:
+1. Open the csv file backing the database.
+2. Perform some operation on it (e.g. reading from it or writing to it)
+3. Close the csv file.
+
+This means that you should always consider the possibility that some other process, or
+thread of execution, may have the file open when you want to interact with it. You may
+wish to therefore wrap your calls to a `CsvDB` object in a suitable `try`-`catch` block,
+for example:
+
+```python
+try:
+    db.create({'ID': '2', 'Name': 'Puss in Boots', 'Age': '22', 'Species': 'Cat'})
+except PermissionError:
+    print("File is open in another process")
+```
+
 
 ## Licence
 
