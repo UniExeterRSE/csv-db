@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "csv-db"
-version = "0.1.0.dev6"
+version = "0.1.0.rc1"
 description = 'A Python package for working with a simple csv file database.'
 readme = "README.md"
 requires-python = ">=3.9"
